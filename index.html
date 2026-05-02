@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Iron Shield - الدرع الحديدي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Tajawal', sans-serif;
+            overflow: hidden; 
+            background-color: #020617;
+            color: #f8fafc;
+            user-select: none; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .lockdown-active {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            background: radial-gradient(circle, #0f172a 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            touch-action: none;
+        }
+
+        .timer-text {
+            font-size: clamp(3.5rem, 18vw, 6rem);
+            font-weight: 900;
+            color: #ef4444;
+            text-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .penalty-flash {
+            animation: flash-red 0.4s infinite alternate;
+        }
+
+        @keyframes flash-red {
+            from { background-color: transparent; }
+            to { background-color: rgba(220, 38, 38, 0.2); }
+        }
+
+        /* منع السحب لأسفل لتحديث الصفحة */
+        html, body {
+            overscroll-behavior-y: contain;
+        }
+    </style>
+</head>
+<body class="transition-all duration-500">
+
+    <!-- واجهة الإعدادات -->
+    <div id="setup-screen" class="p-6 max-w-md mx-auto h-screen flex flex-col justify-center">
+        <div class="text-center mb-10">
+            <div class="inline-block p-4 bg-blue-600/10 rounded-full mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+            </div>
+            <h1 class="text-4xl font-black text-white mb-2">الدرع الحديدي</h1>
+            <p class="text-slate-400">نظام حماية الدراسة غير القابل للاختراق</p>
+        </div>
+
+        <div class="space-y-6">
+            <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl">
+                <label class="block text-sm font-bold mb-4 text-blue-400">اختر نوع القفل:</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="setMode('total')" id="btn-total" class="p-4 rounded-2xl border-2 border-blue-600 bg-blue-600 text-white font-bold transition-all shadow-lg">
+                        قفل شامل
+                    </button>
+                    <button onclick="setMode('partial')" id="btn-partial" class="p-4 rounded-2xl border-2 border-slate-800 bg-slate-800 text-slate-500 font-bold transition-all">
+                        مخصص
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl">
+                <label class="block text-sm font-bold mb-4 text-blue-400">وقت المهمة:</label>
+                <div class="flex items-center justify-between px-2">
+                    <input type="range" id="lock-range" min="5" max="180" step="5" value="25" oninput="updateRangeVal(this.value)" class="w-2/3 accent-blue-500">
+                    <span id="range-val" class="text-3xl font-black text-white">25</span>
+                    <span class="text-slate-500 text-xs">دقيقة</span>
+                </div>
+            </div>
+
+            <button id="start-button" onclick="confirmAndStart()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-3xl shadow-xl shadow-blue-900/40 transform active:scale-95 transition-all text-xl">
+                تفعيل البروتوكول الصارم
+            </button>
+        </div>
+    </div>
+
+    <!-- واجهة القفل -->
+    <div id="lockdown-screen" class="hidden lockdown-active">
+        <div class="text-center p-6">
+            <div id="lock-icon" class="mb-6 text-red-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-28 w-28 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+            </div>
+            
+            <h2 class="text-xl font-bold text-slate-400 uppercase tracking-widest mb-2">الوقت المتبقي للتحرر</h2>
+            <div class="timer-text mb-8" id="timer-display">00:00</div>
+            
+            <div class="max-w-xs mx-auto py-3 px-6 bg-red-900/10 border border-red-900/30 rounded-full">
+                <p class="text-red-400 text-xs font-bold">إعادة تشغيل الجهاز لن تكسر القفل</p>
+            </div>
+        </div>
+
+        <div id="partial-apps" class="hidden fixed bottom-16 w-full flex justify-center gap-8">
+            <button class="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center border border-slate-800 text-2xl">📚</button>
+            <button class="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center border border-slate-800 text-2xl">🧮</button>
+        </div>
+    </div>
+
+    <!-- تنبيه العقوبة -->
+    <div id="warning-overlay" class="hidden fixed inset-0 bg-red-600 z-[10000] flex flex-col items-center justify-center text-center p-10">
+        <h1 class="text-6xl font-black text-white mb-6">خطر!</h1>
+        <p class="text-2xl text-white font-bold mb-2 text-shadow">تم رصد محاولة كسر النظام</p>
+        <p class="text-white/80">+5 دقائق عقوبة إضافية</p>
+    </div>
+
+    <script>
+        let lockMode = 'total';
+        let timerId = null;
+        let isLocked = false;
+        const STORAGE_KEY = 'iron_shield_lock_data';
+
+        // فحص وجود قفل سابق عند التشغيل
+        window.onload = checkExistingLock;
+
+        function updateRangeVal(val) {
+            document.getElementById('range-val').innerText = val;
+        }
+
+        function setMode(mode) {
+            lockMode = mode;
+            document.getElementById('btn-total').className = mode === 'total' ? "p-4 rounded-2xl border-2 border-blue-600 bg-blue-600 text-white font-bold transition-all shadow-lg" : "p-4 rounded-2xl border-2 border-slate-800 bg-slate-800 text-slate-500 font-bold transition-all";
+            document.getElementById('btn-partial').className = mode === 'partial' ? "p-4 rounded-2xl border-2 border-blue-600 bg-blue-600 text-white font-bold transition-all shadow-lg" : "p-4 rounded-2xl border-2 border-slate-800 bg-slate-800 text-slate-500 font-bold transition-all";
+        }
+
+        function confirmAndStart() {
+            const minutes = document.getElementById('lock-range').value;
+            const endTime = Date.now() + (minutes * 60 * 1000);
+            
+            const lockData = {
+                endTime: endTime,
+                mode: lockMode,
+                isLocked: true
+            };
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(lockData));
+            activateLockdown(endTime);
+        }
+
+        function checkExistingLock() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    const now = Date.now();
+                    
+                    if (data.isLocked && data.endTime > now) {
+                        lockMode = data.mode;
+                        activateLockdown(data.endTime);
+                    } else {
+                        localStorage.removeItem(STORAGE_KEY);
+                    }
+                } catch (e) {
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+            }
+        }
+
+        async function activateLockdown(endTime) {
+            isLocked = true;
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('lockdown-screen').classList.remove('hidden');
+            if (lockMode === 'partial') document.getElementById('partial-apps').classList.remove('hidden');
+
+            // إصلاح خطأ سياسة الصلاحيات: استخدام محاولة آمنة لطلب ملء الشاشة
+            try {
+                const docEl = document.documentElement;
+                const requestFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+                if (requestFs) {
+                    // نلف الطلب في وعد للتعامل مع الرفض الصامت أو الخطأ
+                    Promise.resolve(requestFs.call(docEl)).catch(err => {
+                        console.warn("Fullscreen request failed safely:", err.message);
+                    });
+                }
+            } catch(e) {
+                console.warn("Fullscreen feature is blocked by browser policy, but lockdown will continue.");
+            }
+
+            startTimer(endTime);
+            enableAntiCheat();
+        }
+
+        function startTimer(endTime) {
+            if (timerId) clearInterval(timerId);
+            
+            timerId = setInterval(() => {
+                const now = Date.now();
+                const diff = endTime - now;
+
+                if (diff <= 0) {
+                    clearInterval(timerId);
+                    releaseLock();
+                    return;
+                }
+
+                const mins = Math.floor(diff / 60000);
+                const secs = Math.floor((diff % 60000) / 1000);
+                document.getElementById('timer-display').innerText = 
+                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function releaseLock() {
+            isLocked = false;
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById('setup-screen').classList.remove('hidden');
+            document.getElementById('lockdown-screen').classList.add('hidden');
+            alert("تم فك الحظر بنجاح. نرجو أن تكون قد أنجزت مهامك!");
+        }
+
+        function triggerPenalty() {
+            if (!isLocked) return;
+            
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (!savedData) return;
+            
+            const saved = JSON.parse(savedData);
+            const newEndTime = saved.endTime + (5 * 60 * 1000); // +5 mins
+            
+            saved.endTime = newEndTime;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+            
+            // تحديث المؤقت فوراً
+            startTimer(newEndTime);
+
+            const warning = document.getElementById('warning-overlay');
+            warning.classList.remove('hidden');
+            document.body.classList.add('penalty-flash');
+            
+            setTimeout(() => {
+                warning.classList.add('hidden');
+                document.body.classList.remove('penalty-flash');
+            }, 3000);
+        }
+
+        function enableAntiCheat() {
+            // منع الرجوع عبر التلاعب بمسار المتصفح
+            window.history.pushState(null, null, window.location.href);
+            window.onpopstate = () => { 
+                if (isLocked) {
+                    window.history.pushState(null, null, window.location.href); 
+                    triggerPenalty(); 
+                }
+            };
+
+            // كشف محاولة مغادرة التطبيق أو تبديل التبويب
+            document.addEventListener('visibilitychange', () => { 
+                if (document.hidden && isLocked) triggerPenalty(); 
+            });
+            
+            window.onblur = () => { 
+                if (isLocked) triggerPenalty(); 
+            };
+        }
+
+        // حظر مفاتيح النظام الشائعة في الويب
+        document.addEventListener('keydown', (e) => {
+            if (isLocked) {
+                // منع التلاعب إلا بمفاتيح غير ضارة
+                if (e.key !== "Shift" && e.key !== "Control") {
+                    e.preventDefault();
+                    triggerPenalty();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
