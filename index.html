@@ -1,291 +1,1180 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Iron Shield - الدرع الحديدي</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
-        
-        body {
-            font-family: 'Tajawal', sans-serif;
-            overflow: hidden; 
-            background-color: #020617;
-            color: #f8fafc;
-            user-select: none; 
-            -webkit-tap-highlight-color: transparent;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<title>StudyLock — القفل الدراسي الصارم</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;800&display=swap');
 
-        .lockdown-active {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 9999;
-            background: radial-gradient(circle, #0f172a 0%, #000000 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            touch-action: none;
-        }
+  :root {
+    --red: #ff2d2d;
+    --red-dark: #c0000d;
+    --green: #00e676;
+    --green-dark: #00a152;
+    --blue: #2979ff;
+    --gold: #ffd600;
+    --bg: #07070d;
+    --surface: #0f0f1a;
+    --surface2: #161625;
+    --border: #1e1e35;
+    --text: #e8e8ff;
+    --muted: #6060a0;
+    --danger-glow: 0 0 30px rgba(255,45,45,0.5);
+    --green-glow: 0 0 30px rgba(0,230,118,0.4);
+  }
 
-        .timer-text {
-            font-size: clamp(3.5rem, 18vw, 6rem);
-            font-weight: 900;
-            color: #ef4444;
-            text-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
-            font-variant-numeric: tabular-nums;
-        }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
 
-        .penalty-flash {
-            animation: flash-red 0.4s infinite alternate;
-        }
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Cairo', 'Tajawal', sans-serif;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
 
-        @keyframes flash-red {
-            from { background-color: transparent; }
-            to { background-color: rgba(220, 38, 38, 0.2); }
-        }
+  /* ===== SCREENS ===== */
+  .screen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease;
+    overflow-y: auto;
+  }
+  .screen.active { opacity: 1; pointer-events: all; }
 
-        /* منع السحب لأسفل لتحديث الصفحة */
-        html, body {
-            overscroll-behavior-y: contain;
-        }
-    </style>
+  /* ===== HOME SCREEN ===== */
+  #home {
+    background: radial-gradient(ellipse at top, #0d0d20 0%, #07070d 70%);
+  }
+
+  .logo-wrap {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .logo-icon {
+    width: 90px; height: 90px;
+    background: linear-gradient(135deg, var(--red-dark), var(--red));
+    border-radius: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    margin: 0 auto 16px;
+    box-shadow: var(--danger-glow);
+    animation: pulse-logo 3s ease-in-out infinite;
+  }
+  @keyframes pulse-logo {
+    0%,100% { box-shadow: 0 0 30px rgba(255,45,45,0.5); }
+    50% { box-shadow: 0 0 60px rgba(255,45,45,0.9), 0 0 100px rgba(255,45,45,0.3); }
+  }
+  .app-title {
+    font-size: 32px; font-weight: 900;
+    background: linear-gradient(135deg, #fff 0%, var(--red) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .app-subtitle {
+    color: var(--muted); font-size: 13px; margin-top: 6px;
+  }
+
+  .mode-cards {
+    display: flex; flex-direction: column; gap: 16px;
+    width: 100%; max-width: 400px;
+    margin-bottom: 30px;
+  }
+
+  .mode-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 22px 20px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .mode-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 20px;
+  }
+  .mode-card.total::before { background: linear-gradient(135deg, rgba(255,45,45,0.08), transparent); }
+  .mode-card.partial::before { background: linear-gradient(135deg, rgba(41,121,255,0.08), transparent); }
+  .mode-card:active { transform: scale(0.97); }
+  .mode-card.selected { border-color: currentColor; }
+  .mode-card.total { color: var(--red); }
+  .mode-card.partial { color: var(--blue); }
+  .mode-card.selected::before { opacity: 1; }
+
+  .card-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 8px;
+  }
+  .card-icon { font-size: 28px; }
+  .card-title { font-size: 18px; font-weight: 700; }
+  .card-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .card-badge {
+    position: absolute; top: 12px; left: 12px;
+    background: currentColor;
+    color: var(--bg);
+    font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 20px;
+  }
+
+  /* ===== TIME PICKER ===== */
+  .section-label {
+    font-size: 13px; color: var(--muted); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 12px; align-self: flex-start;
+  }
+
+  .time-picker {
+    width: 100%; max-width: 400px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .time-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .time-unit { text-align: center; }
+  .time-unit label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 6px; }
+
+  .time-stepper {
+    display: flex; align-items: center;
+    background: var(--surface2);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .step-btn {
+    width: 44px; height: 48px;
+    background: none; border: none;
+    color: var(--text);
+    font-size: 22px; cursor: pointer;
+    transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-btn:active { background: rgba(255,255,255,0.05); }
+  .step-val {
+    flex: 1; text-align: center;
+    font-size: 26px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== APPS SELECTOR ===== */
+  #apps-screen {
+    background: radial-gradient(ellipse at top, #0a0a20 0%, #07070d 70%);
+  }
+
+  .apps-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%; max-width: 400px;
+    margin-bottom: 20px;
+    max-height: 360px; overflow-y: auto;
+    padding: 4px;
+  }
+  .apps-grid::-webkit-scrollbar { display: none; }
+
+  .app-item {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .app-item.selected {
+    border-color: var(--blue);
+    background: rgba(41,121,255,0.1);
+  }
+  .app-item.selected::after {
+    content: '✓';
+    position: absolute; top: 6px; right: 8px;
+    font-size: 12px; color: var(--blue); font-weight: 700;
+  }
+  .app-item:active { transform: scale(0.94); }
+  .app-emoji { font-size: 28px; display: block; margin-bottom: 6px; }
+  .app-name { font-size: 11px; color: var(--muted); }
+
+  /* ===== PASSWORD SETUP ===== */
+  #pin-setup {
+    background: radial-gradient(ellipse at top, #0a1a0a 0%, #07070d 70%);
+  }
+
+  .pin-display {
+    display: flex; gap: 14px;
+    margin-bottom: 30px;
+  }
+  .pin-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--muted);
+    transition: all 0.2s;
+  }
+  .pin-dot.filled {
+    background: var(--green);
+    border-color: var(--green);
+    box-shadow: 0 0 12px rgba(0,230,118,0.6);
+  }
+
+  .pin-pad {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%; max-width: 300px;
+  }
+  .pin-btn {
+    height: 70px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    font-size: 24px; font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin-btn:active { background: var(--surface2); transform: scale(0.93); }
+  .pin-btn.del { font-size: 18px; color: var(--red); }
+  .pin-btn.empty { background: none; border-color: transparent; pointer-events: none; }
+
+  /* ===== LOCK SCREEN ===== */
+  #lock-screen {
+    background: #07070d;
+    z-index: 9999;
+  }
+
+  .lock-bg {
+    position: absolute; inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(255,45,45,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,45,45,0.04) 0%, transparent 50%);
+  }
+
+  .lock-content {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center; width: 100%;
+    max-width: 400px;
+  }
+
+  .lock-clock {
+    font-size: 72px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .lock-date {
+    color: var(--muted); font-size: 15px;
+    margin-bottom: 40px;
+  }
+
+  .lock-status {
+    background: rgba(255,45,45,0.1);
+    border: 1px solid rgba(255,45,45,0.3);
+    border-radius: 100px;
+    padding: 8px 20px;
+    font-size: 13px; color: var(--red);
+    font-weight: 600;
+    margin-bottom: 30px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    background: var(--red);
+    border-radius: 50%;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.2; } }
+
+  .timer-ring-wrap {
+    position: relative;
+    width: 200px; height: 200px;
+    margin-bottom: 30px;
+  }
+  .timer-ring {
+    transform: rotate(-90deg);
+  }
+  .ring-track { fill: none; stroke: var(--surface2); stroke-width: 8; }
+  .ring-progress {
+    fill: none; stroke: var(--red); stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 565;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear;
+    filter: drop-shadow(0 0 6px rgba(255,45,45,0.8));
+  }
+  .timer-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .timer-hms {
+    font-size: 34px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--red);
+  }
+  .timer-label {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .motivation-text {
+    font-size: 16px; font-weight: 600;
+    color: var(--muted);
+    text-align: center;
+    max-width: 300px;
+    line-height: 1.7;
+    margin-bottom: 24px;
+    min-height: 54px;
+  }
+  .motivation-text span { color: var(--gold); }
+
+  .allowed-apps-bar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .allowed-app-chip {
+    background: rgba(41,121,255,0.12);
+    border: 1px solid rgba(41,121,255,0.3);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 13px; color: #7eb3ff;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .allowed-app-chip:active { background: rgba(41,121,255,0.25); }
+
+  /* ===== UNLOCK PANEL ===== */
+  .unlock-panel {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 20px;
+    border-radius: 28px 28px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(.32,.72,0,1);
+    z-index: 100;
+  }
+  .unlock-panel.visible { transform: translateY(0); }
+
+  .panel-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .unlock-warning {
+    background: rgba(255,45,45,0.08);
+    border: 1px solid rgba(255,45,45,0.2);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 12px; color: #ff8080;
+    text-align: center;
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .unlock-attempts {
+    font-size: 12px; color: var(--red);
+    text-align: center; margin-top: 10px;
+    min-height: 20px;
+    font-weight: 600;
+  }
+
+  /* ===== UNLOCK COMPLETE ===== */
+  #unlock-screen {
+    background: radial-gradient(ellipse at top, #001a00 0%, #07070d 70%);
+    z-index: 10000;
+  }
+  .success-icon {
+    width: 100px; height: 100px;
+    background: linear-gradient(135deg, var(--green-dark), var(--green));
+    border-radius: 50%;
+    font-size: 50px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: var(--green-glow);
+    animation: success-pop 0.5s cubic-bezier(.2,1.3,.6,1);
+  }
+  @keyframes success-pop {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* ===== SHARED COMPONENTS ===== */
+  .btn {
+    width: 100%; max-width: 400px;
+    height: 58px;
+    border: none; border-radius: 18px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 17px; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-bottom: 12px;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-danger {
+    background: linear-gradient(135deg, var(--red-dark), var(--red));
+    color: white;
+    box-shadow: 0 8px 24px rgba(255,45,45,0.35);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #1a3aaa, var(--blue));
+    color: white;
+    box-shadow: 0 8px 24px rgba(41,121,255,0.3);
+  }
+  .btn-success {
+    background: linear-gradient(135deg, var(--green-dark), var(--green));
+    color: #001a00;
+    box-shadow: 0 8px 24px rgba(0,230,118,0.3);
+  }
+  .btn-ghost {
+    background: var(--surface);
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    box-shadow: none;
+  }
+
+  .page-title {
+    font-size: 24px; font-weight: 800;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .page-desc {
+    font-size: 13px; color: var(--muted);
+    text-align: center; line-height: 1.6;
+    margin-bottom: 28px;
+    max-width: 340px;
+  }
+
+  .warn-box {
+    background: rgba(255,45,45,0.06);
+    border: 1px solid rgba(255,45,45,0.2);
+    border-radius: 16px;
+    padding: 16px;
+    width: 100%; max-width: 400px;
+    margin-bottom: 20px;
+    font-size: 13px; color: #ff9090;
+    line-height: 1.8;
+    text-align: center;
+  }
+
+  /* shake animation */
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    15% { transform: translateX(-12px); }
+    30% { transform: translateX(12px); }
+    45% { transform: translateX(-8px); }
+    60% { transform: translateX(8px); }
+    75% { transform: translateX(-4px); }
+    90% { transform: translateX(4px); }
+  }
+  .shake { animation: shake 0.5s ease; }
+
+  /* overlay blocker */
+  #overlay-blocker {
+    position: fixed; inset: 0;
+    z-index: 99998;
+    display: none;
+    background: rgba(7,7,13,0.96);
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    font-size: 22px; font-weight: 700; color: var(--red);
+    text-align: center;
+  }
+  #overlay-blocker.show { display: flex; }
+  .blocker-icon { font-size: 60px; }
+
+  .stars {
+    position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+  }
+  .star {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+    animation: twinkle var(--d) ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity: 0.1; }
+    50% { opacity: 0.8; }
+  }
+</style>
 </head>
-<body class="transition-all duration-500">
+<body>
 
-    <!-- واجهة الإعدادات -->
-    <div id="setup-screen" class="p-6 max-w-md mx-auto h-screen flex flex-col justify-center">
-        <div class="text-center mb-10">
-            <div class="inline-block p-4 bg-blue-600/10 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-            </div>
-            <h1 class="text-4xl font-black text-white mb-2">الدرع الحديدي</h1>
-            <p class="text-slate-400">نظام حماية الدراسة غير القابل للاختراق</p>
-        </div>
+<!-- Stars BG -->
+<div class="stars" id="stars"></div>
 
-        <div class="space-y-6">
-            <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl">
-                <label class="block text-sm font-bold mb-4 text-blue-400">اختر نوع القفل:</label>
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="setMode('total')" id="btn-total" class="p-4 rounded-2xl border-2 border-blue-600 bg-blue-600 text-white font-bold transition-all shadow-lg">
-                        قفل شامل
-                    </button>
-                    <button onclick="setMode('partial')" id="btn-partial" class="p-4 rounded-2xl border-2 border-slate-800 bg-slate-800 text-slate-500 font-bold transition-all">
-                        مخصص
-                    </button>
-                </div>
-            </div>
+<!-- ===================== SCREEN 1: HOME ===================== -->
+<div class="screen active" id="home">
+  <div class="logo-wrap">
+    <div class="logo-icon">🔒</div>
+    <div class="app-title">StudyLock</div>
+    <div class="app-subtitle">القفل الدراسي — لا مفر، لا استثناء</div>
+  </div>
 
-            <div class="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl">
-                <label class="block text-sm font-bold mb-4 text-blue-400">وقت المهمة:</label>
-                <div class="flex items-center justify-between px-2">
-                    <input type="range" id="lock-range" min="5" max="180" step="5" value="25" oninput="updateRangeVal(this.value)" class="w-2/3 accent-blue-500">
-                    <span id="range-val" class="text-3xl font-black text-white">25</span>
-                    <span class="text-slate-500 text-xs">دقيقة</span>
-                </div>
-            </div>
-
-            <button id="start-button" onclick="confirmAndStart()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-3xl shadow-xl shadow-blue-900/40 transform active:scale-95 transition-all text-xl">
-                تفعيل البروتوكول الصارم
-            </button>
-        </div>
+  <div class="mode-cards">
+    <div class="mode-card total" id="card-total" onclick="selectMode('total')">
+      <div class="card-badge">الأصعب</div>
+      <div class="card-header">
+        <span class="card-icon">🚫</span>
+        <span class="card-title">القفل الكامل المطلق</span>
+      </div>
+      <div class="card-desc">يُقفل كل شيء بدون أي استثناء. لا هاتف، لا تطبيقات، لا شبكة. أنت وكتبك فقط.</div>
     </div>
 
-    <!-- واجهة القفل -->
-    <div id="lockdown-screen" class="hidden lockdown-active">
-        <div class="text-center p-6">
-            <div id="lock-icon" class="mb-6 text-red-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-28 w-28 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-            </div>
-            
-            <h2 class="text-xl font-bold text-slate-400 uppercase tracking-widest mb-2">الوقت المتبقي للتحرر</h2>
-            <div class="timer-text mb-8" id="timer-display">00:00</div>
-            
-            <div class="max-w-xs mx-auto py-3 px-6 bg-red-900/10 border border-red-900/30 rounded-full">
-                <p class="text-red-400 text-xs font-bold">إعادة تشغيل الجهاز لن تكسر القفل</p>
-            </div>
-        </div>
+    <div class="mode-card partial" id="card-partial" onclick="selectMode('partial')">
+      <div class="card-header">
+        <span class="card-icon">⚙️</span>
+        <span class="card-title">قفل انتقائي ذكي</span>
+      </div>
+      <div class="card-desc">تختار التطبيقات المسموح بها فقط (قاموس، قرآن، ملاحظات...) وتُقفل كل الباقي بصرامة تامة.</div>
+    </div>
+  </div>
 
-        <div id="partial-apps" class="hidden fixed bottom-16 w-full flex justify-center gap-8">
-            <button class="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center border border-slate-800 text-2xl">📚</button>
-            <button class="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center border border-slate-800 text-2xl">🧮</button>
+  <div style="width:100%;max-width:400px">
+    <div class="section-label">⏱️ مدة القفل</div>
+  </div>
+  <div class="time-picker">
+    <div class="time-grid">
+      <div class="time-unit">
+        <label>ساعات</label>
+        <div class="time-stepper">
+          <button class="step-btn" onclick="changeTime('h',-1)">−</button>
+          <div class="step-val" id="val-h">0</div>
+          <button class="step-btn" onclick="changeTime('h',1)">+</button>
         </div>
+      </div>
+      <div class="time-unit">
+        <label>دقائق</label>
+        <div class="time-stepper">
+          <button class="step-btn" onclick="changeTime('m',-1)">−</button>
+          <div class="step-val" id="val-m">25</div>
+          <button class="step-btn" onclick="changeTime('m',1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-danger" onclick="proceedFromHome()">🔒 ابدأ إعداد القفل</button>
+  <button class="btn btn-ghost" onclick="showStats()">📊 إحصائياتي</button>
+</div>
+
+<!-- ===================== SCREEN 2: APPS ===================== -->
+<div class="screen" id="apps-screen">
+  <div class="page-title">🧩 اختر التطبيقات المسموحة</div>
+  <div class="page-desc">هذه التطبيقات وحدها ستعمل أثناء جلسة الدراسة. كل شيء آخر مقفول تمامًا.</div>
+
+  <div class="apps-grid" id="apps-grid"></div>
+
+  <div class="warn-box">⚠️ انتبه: لن تتمكن من فتح أي تطبيق آخر طوال فترة القفل مهما حاولت!</div>
+
+  <button class="btn btn-primary" onclick="goToPinSetup()">التالي: تعيين كلمة المرور ←</button>
+  <button class="btn btn-ghost" onclick="showScreen('home')">← رجوع</button>
+</div>
+
+<!-- ===================== SCREEN 3: PIN SETUP ===================== -->
+<div class="screen" id="pin-setup">
+  <div class="logo-icon" style="margin-bottom:20px;width:70px;height:70px;font-size:30px">🔐</div>
+  <div class="page-title">تعيين كلمة مرور الطوارئ</div>
+  <div class="page-desc">هذا الرمز يُستخدم فقط للفتح المبكر الطارئ وسيُسجَّل في السجل. اختر رقمًا صعب التخمين.</div>
+
+  <div class="pin-display" id="pin-dots">
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+  </div>
+
+  <div class="pin-pad" id="pin-pad">
+    <button class="pin-btn" onclick="pinInput(1)">1</button>
+    <button class="pin-btn" onclick="pinInput(2)">2</button>
+    <button class="pin-btn" onclick="pinInput(3)">3</button>
+    <button class="pin-btn" onclick="pinInput(4)">4</button>
+    <button class="pin-btn" onclick="pinInput(5)">5</button>
+    <button class="pin-btn" onclick="pinInput(6)">6</button>
+    <button class="pin-btn" onclick="pinInput(7)">7</button>
+    <button class="pin-btn" onclick="pinInput(8)">8</button>
+    <button class="pin-btn" onclick="pinInput(9)">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinInput(0)">0</button>
+    <button class="pin-btn del" onclick="pinDelete()">⌫</button>
+  </div>
+
+  <div id="pin-confirm-label" style="font-size:13px;color:var(--muted);margin-top:16px;text-align:center;min-height:20px"></div>
+  <button class="btn btn-ghost" style="margin-top:20px" onclick="showScreen('home')">← إلغاء</button>
+</div>
+
+<!-- ===================== LOCK SCREEN ===================== -->
+<div class="screen" id="lock-screen">
+  <div class="lock-bg"></div>
+  <div class="lock-content">
+    <div class="lock-clock" id="lock-clock">00:00</div>
+    <div class="lock-date" id="lock-date">الجمعة، ١ يناير</div>
+
+    <div class="lock-status">
+      <div class="status-dot"></div>
+      <span id="lock-mode-label">وضع القفل الكامل نشط</span>
     </div>
 
-    <!-- تنبيه العقوبة -->
-    <div id="warning-overlay" class="hidden fixed inset-0 bg-red-600 z-[10000] flex flex-col items-center justify-center text-center p-10">
-        <h1 class="text-6xl font-black text-white mb-6">خطر!</h1>
-        <p class="text-2xl text-white font-bold mb-2 text-shadow">تم رصد محاولة كسر النظام</p>
-        <p class="text-white/80">+5 دقائق عقوبة إضافية</p>
+    <div class="timer-ring-wrap">
+      <svg class="timer-ring" width="200" height="200" viewBox="0 0 200 200">
+        <circle class="ring-track" cx="100" cy="100" r="90"/>
+        <circle class="ring-progress" id="ring-progress" cx="100" cy="100" r="90"/>
+      </svg>
+      <div class="timer-center">
+        <div class="timer-hms" id="timer-hms">--:--:--</div>
+        <div class="timer-label">الوقت المتبقي</div>
+      </div>
     </div>
 
-    <script>
-        let lockMode = 'total';
-        let timerId = null;
-        let isLocked = false;
-        const STORAGE_KEY = 'iron_shield_lock_data';
+    <div class="motivation-text" id="motivation-text">...</div>
 
-        // فحص وجود قفل سابق عند التشغيل
-        window.onload = checkExistingLock;
+    <div class="allowed-apps-bar" id="allowed-apps-bar"></div>
 
-        function updateRangeVal(val) {
-            document.getElementById('range-val').innerText = val;
+    <button class="btn btn-ghost" style="opacity:0.4;font-size:13px;height:44px;" onclick="showUnlockPanel()">
+      🔓 فتح طارئ (سيُسجَّل)
+    </button>
+  </div>
+</div>
+
+<!-- Unlock Panel -->
+<div class="unlock-panel" id="unlock-panel">
+  <div class="panel-handle"></div>
+  <div class="unlock-warning">
+    ⚠️ الفتح المبكر سيُسجَّل مع الوقت والتاريخ في السجل الدائم.<br>
+    هل أنت متأكد أنك تريد كسر جلسة الدراسة؟
+  </div>
+  <div class="pin-display" id="unlock-dots" style="justify-content:center">
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+    <div class="pin-dot"></div>
+  </div>
+  <div class="pin-pad" style="max-width:280px;margin:16px auto">
+    <button class="pin-btn" onclick="unlockInput(1)">1</button>
+    <button class="pin-btn" onclick="unlockInput(2)">2</button>
+    <button class="pin-btn" onclick="unlockInput(3)">3</button>
+    <button class="pin-btn" onclick="unlockInput(4)">4</button>
+    <button class="pin-btn" onclick="unlockInput(5)">5</button>
+    <button class="pin-btn" onclick="unlockInput(6)">6</button>
+    <button class="pin-btn" onclick="unlockInput(7)">7</button>
+    <button class="pin-btn" onclick="unlockInput(8)">8</button>
+    <button class="pin-btn" onclick="unlockInput(9)">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="unlockInput(0)">0</button>
+    <button class="pin-btn del" onclick="unlockDelete()">⌫</button>
+  </div>
+  <div class="unlock-attempts" id="unlock-attempts"></div>
+  <button class="btn btn-ghost" style="margin-top:10px" onclick="hideUnlockPanel()">إلغاء</button>
+</div>
+
+<!-- ===================== UNLOCK SUCCESS ===================== -->
+<div class="screen" id="unlock-screen">
+  <div class="success-icon">✅</div>
+  <div class="page-title" style="color:var(--green)">أحسنت! انتهت الجلسة</div>
+  <div class="page-desc" style="margin-top:8px" id="session-summary">...</div>
+  <div style="width:100%;max-width:400px;background:var(--surface);border-radius:20px;padding:20px;margin-bottom:24px" id="session-log"></div>
+  <button class="btn btn-success" onclick="showScreen('home')">🏠 الرئيسية — جلسة جديدة</button>
+</div>
+
+<!-- Overlay Blocker -->
+<div id="overlay-blocker">
+  <div class="blocker-icon">🚫</div>
+  <div>وضع الدراسة نشط!</div>
+  <div style="font-size:14px;color:var(--muted);margin-top:8px">لا يمكن مغادرة التطبيق الآن</div>
+</div>
+
+<script>
+// ==================== DATA ====================
+const APPS = [
+  {name:'قاموس',emoji:'📖',id:'dict'},
+  {name:'قرآن',emoji:'📿',id:'quran'},
+  {name:'حاسبة',emoji:'🧮',id:'calc'},
+  {name:'ملاحظات',emoji:'📝',id:'notes'},
+  {name:'ساعة',emoji:'⏰',id:'clock'},
+  {name:'خرائط',emoji:'🗺️',id:'maps'},
+  {name:'كاميرا',emoji:'📷',id:'camera'},
+  {name:'يوتيوب تعليم',emoji:'🎓',id:'youtube_edu'},
+  {name:'واتساب',emoji:'💬',id:'whatsapp'},
+];
+
+const MOTIVATIONS = [
+  "كل دقيقة تصبر فيها الآن هي نجاح <span>تحصده غداً</span>",
+  "الفارق بين الناجح والفاشل هو <span>ما يفعله بوقته</span>",
+  "الهاتف سينتظرك. أما <span>مستقبلك</span> فلن ينتظر.",
+  "أنت الآن <span>أقوى إصدار منك</span> على الإطلاق",
+  "المنافسون لا يستريحون — <span>لا تُعطهم فرصة</span>",
+  "كل مرة تتجاوز إغراء الهاتف <span>تبني إرادة حديدية</span>",
+  "النجاح ليس حظًا — هو <span>ساعات صامتة</span> كهذه",
+];
+
+let state = {
+  mode: null,         // 'total' | 'partial'
+  hours: 0,
+  minutes: 25,
+  selectedApps: [],
+  pin: '',
+  pinConfirm: '',
+  pinStep: 'set',     // 'set' | 'confirm'
+  lockEndTime: null,
+  totalSeconds: 0,
+  remainingSeconds: 0,
+  lockTimer: null,
+  clockTimer: null,
+  motivationTimer: null,
+  motivationIdx: 0,
+  unlockPin: '',
+  unlockAttempts: 0,
+  sessions: JSON.parse(localStorage.getItem('sl_sessions') || '[]'),
+  lockActive: false,
+  freezeAttempts: 0,
+};
+
+// ==================== STARS ====================
+function initStars() {
+  const c = document.getElementById('stars');
+  for (let i = 0; i < 60; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;
+      --d:${2+Math.random()*4}s;animation-delay:${Math.random()*4}s;
+      opacity:${Math.random()*0.5+0.1}`;
+    c.appendChild(s);
+  }
+}
+
+// ==================== NAVIGATION ====================
+function showScreen(id) {
+  if (state.lockActive && id !== 'lock-screen' && id !== 'unlock-screen') {
+    flashBlocker(); return;
+  }
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ==================== HOME ====================
+function selectMode(m) {
+  state.mode = m;
+  document.getElementById('card-total').classList.toggle('selected', m==='total');
+  document.getElementById('card-partial').classList.toggle('selected', m==='partial');
+}
+
+function changeTime(unit, delta) {
+  if (unit === 'h') {
+    state.hours = Math.max(0, Math.min(12, state.hours + delta));
+    document.getElementById('val-h').textContent = state.hours;
+  } else {
+    state.minutes = Math.max(0, Math.min(59, state.minutes + delta));
+    document.getElementById('val-m').textContent = String(state.minutes).padStart(2,'0');
+  }
+}
+
+function proceedFromHome() {
+  if (!state.mode) { alert('اختر وضع القفل أولاً'); return; }
+  if (state.hours === 0 && state.minutes === 0) { alert('حدد مدة القفل'); return; }
+  if (state.mode === 'partial') {
+    buildAppsGrid();
+    showScreen('apps-screen');
+  } else {
+    showScreen('pin-setup');
+  }
+}
+
+// ==================== APPS ====================
+function buildAppsGrid() {
+  const g = document.getElementById('apps-grid');
+  g.innerHTML = '';
+  APPS.forEach(a => {
+    const el = document.createElement('div');
+    el.className = 'app-item' + (state.selectedApps.includes(a.id) ? ' selected' : '');
+    el.innerHTML = `<span class="app-emoji">${a.emoji}</span><span class="app-name">${a.name}</span>`;
+    el.onclick = () => toggleApp(a.id, el);
+    g.appendChild(el);
+  });
+}
+
+function toggleApp(id, el) {
+  const i = state.selectedApps.indexOf(id);
+  if (i === -1) state.selectedApps.push(id);
+  else state.selectedApps.splice(i, 1);
+  el.classList.toggle('selected', state.selectedApps.includes(id));
+}
+
+function goToPinSetup() {
+  state.pin = ''; state.pinConfirm = ''; state.pinStep = 'set';
+  updatePinDisplay('pin-dots', 0);
+  document.getElementById('pin-confirm-label').textContent = 'أدخل رمز PIN المكون من 6 أرقام';
+  showScreen('pin-setup');
+}
+
+// ==================== PIN ====================
+let currentPin = '';
+let confirmPin = '';
+let pinPhase = 'set'; // 'set' | 'confirm'
+
+function pinInput(n) {
+  if (pinPhase === 'set') {
+    if (currentPin.length >= 6) return;
+    currentPin += n;
+    updatePinDisplay('pin-dots', currentPin.length);
+    if (currentPin.length === 6) {
+      setTimeout(() => {
+        pinPhase = 'confirm';
+        document.getElementById('pin-confirm-label').textContent = '✅ الآن أعد إدخال الرمز للتأكيد';
+        updatePinDisplay('pin-dots', 0);
+      }, 300);
+    }
+  } else {
+    if (confirmPin.length >= 6) return;
+    confirmPin += n;
+    updatePinDisplay('pin-dots', confirmPin.length);
+    if (confirmPin.length === 6) {
+      setTimeout(() => {
+        if (confirmPin === currentPin) {
+          state.pin = currentPin;
+          startLock();
+        } else {
+          document.getElementById('pin-confirm-label').textContent = '❌ الرمزان لا يتطابقان، أعد المحاولة';
+          const dots = document.getElementById('pin-dots');
+          dots.classList.add('shake');
+          setTimeout(() => dots.classList.remove('shake'), 600);
+          pinPhase = 'set';
+          currentPin = ''; confirmPin = '';
+          updatePinDisplay('pin-dots', 0);
         }
+      }, 300);
+    }
+  }
+}
 
-        function setMode(mode) {
-            lockMode = mode;
-            document.getElementById('btn-total').className = mode === 'total' ? "p-4 rounded-2xl border-2 border-blue-600 bg-blue-600 text-white font-bold transition-all shadow-lg" : "p-4 rounded-2xl border-2 border-slate-800 bg-slate-800 text-slate-500 font-bold transition-all";
-            document.getElementById('btn-partial').className = mode === 'partial' ? "p-4 rounded-2xl border-2 border-blue-600 bg-blue-600 text-white font-bold transition-all shadow-lg" : "p-4 rounded-2xl border-2 border-slate-800 bg-slate-800 text-slate-500 font-bold transition-all";
-        }
+function pinDelete() {
+  if (pinPhase === 'set') {
+    currentPin = currentPin.slice(0,-1);
+    updatePinDisplay('pin-dots', currentPin.length);
+  } else {
+    confirmPin = confirmPin.slice(0,-1);
+    updatePinDisplay('pin-dots', confirmPin.length);
+  }
+}
 
-        function confirmAndStart() {
-            const minutes = document.getElementById('lock-range').value;
-            const endTime = Date.now() + (minutes * 60 * 1000);
-            
-            const lockData = {
-                endTime: endTime,
-                mode: lockMode,
-                isLocked: true
-            };
-            
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(lockData));
-            activateLockdown(endTime);
-        }
+function updatePinDisplay(dotId, count) {
+  const dots = document.getElementById(dotId).querySelectorAll('.pin-dot');
+  dots.forEach((d,i) => d.classList.toggle('filled', i < count));
+}
 
-        function checkExistingLock() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    const data = JSON.parse(saved);
-                    const now = Date.now();
-                    
-                    if (data.isLocked && data.endTime > now) {
-                        lockMode = data.mode;
-                        activateLockdown(data.endTime);
-                    } else {
-                        localStorage.removeItem(STORAGE_KEY);
-                    }
-                } catch (e) {
-                    localStorage.removeItem(STORAGE_KEY);
-                }
-            }
-        }
+// ==================== LOCK ====================
+function startLock() {
+  state.lockActive = true;
+  state.totalSeconds = state.hours * 3600 + state.minutes * 60;
+  state.remainingSeconds = state.totalSeconds;
+  state.lockEndTime = Date.now() + state.totalSeconds * 1000;
+  state.freezeAttempts = 0;
+  state.unlockAttempts = 0;
 
-        async function activateLockdown(endTime) {
-            isLocked = true;
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('lockdown-screen').classList.remove('hidden');
-            if (lockMode === 'partial') document.getElementById('partial-apps').classList.remove('hidden');
+  // Build allowed apps bar
+  const bar = document.getElementById('allowed-apps-bar');
+  bar.innerHTML = '';
+  if (state.mode === 'total') {
+    bar.innerHTML = '<span style="color:var(--red);font-size:13px">🚫 لا شيء مسموح به</span>';
+    document.getElementById('lock-mode-label').textContent = 'وضع القفل الكامل المطلق 🔴';
+  } else {
+    const allowed = APPS.filter(a => state.selectedApps.includes(a.id));
+    if (allowed.length === 0) {
+      bar.innerHTML = '<span style="color:var(--red);font-size:13px">🚫 لا شيء مسموح به</span>';
+    } else {
+      allowed.forEach(a => {
+        const chip = document.createElement('div');
+        chip.className = 'allowed-app-chip';
+        chip.textContent = a.emoji + ' ' + a.name;
+        bar.appendChild(chip);
+      });
+    }
+    document.getElementById('lock-mode-label').textContent = 'وضع القفل الانتقائي 🔵';
+  }
 
-            // إصلاح خطأ سياسة الصلاحيات: استخدام محاولة آمنة لطلب ملء الشاشة
-            try {
-                const docEl = document.documentElement;
-                const requestFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
-                if (requestFs) {
-                    // نلف الطلب في وعد للتعامل مع الرفض الصامت أو الخطأ
-                    Promise.resolve(requestFs.call(docEl)).catch(err => {
-                        console.warn("Fullscreen request failed safely:", err.message);
-                    });
-                }
-            } catch(e) {
-                console.warn("Fullscreen feature is blocked by browser policy, but lockdown will continue.");
-            }
+  showScreen('lock-screen');
+  tickTimer();
+  tickClock();
+  rotateMot();
+  engageHardLock();
+}
 
-            startTimer(endTime);
-            enableAntiCheat();
-        }
+function tickTimer() {
+  const now = Date.now();
+  state.remainingSeconds = Math.max(0, Math.round((state.lockEndTime - now) / 1000));
 
-        function startTimer(endTime) {
-            if (timerId) clearInterval(timerId);
-            
-            timerId = setInterval(() => {
-                const now = Date.now();
-                const diff = endTime - now;
+  const h = Math.floor(state.remainingSeconds / 3600);
+  const m = Math.floor((state.remainingSeconds % 3600) / 60);
+  const s = state.remainingSeconds % 60;
+  document.getElementById('timer-hms').textContent =
+    `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 
-                if (diff <= 0) {
-                    clearInterval(timerId);
-                    releaseLock();
-                    return;
-                }
+  // Ring
+  const fraction = state.remainingSeconds / state.totalSeconds;
+  const circumference = 565;
+  document.getElementById('ring-progress').style.strokeDashoffset =
+    circumference * (1 - fraction);
 
-                const mins = Math.floor(diff / 60000);
-                const secs = Math.floor((diff % 60000) / 1000);
-                document.getElementById('timer-display').innerText = 
-                    `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            }, 1000);
-        }
+  if (state.remainingSeconds <= 0) {
+    completeLock();
+    return;
+  }
+  state.lockTimer = setTimeout(tickTimer, 1000);
+}
 
-        function releaseLock() {
-            isLocked = false;
-            localStorage.removeItem(STORAGE_KEY);
-            document.getElementById('setup-screen').classList.remove('hidden');
-            document.getElementById('lockdown-screen').classList.add('hidden');
-            alert("تم فك الحظر بنجاح. نرجو أن تكون قد أنجزت مهامك!");
-        }
+function tickClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('lock-clock').textContent = `${h}:${m}`;
+  const days = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  document.getElementById('lock-date').textContent = `${days[now.getDay()]}، ${now.getDate()} ${months[now.getMonth()]}`;
+  state.clockTimer = setTimeout(tickClock, 5000);
+}
 
-        function triggerPenalty() {
-            if (!isLocked) return;
-            
-            const savedData = localStorage.getItem(STORAGE_KEY);
-            if (!savedData) return;
-            
-            const saved = JSON.parse(savedData);
-            const newEndTime = saved.endTime + (5 * 60 * 1000); // +5 mins
-            
-            saved.endTime = newEndTime;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-            
-            // تحديث المؤقت فوراً
-            startTimer(newEndTime);
+function rotateMot() {
+  document.getElementById('motivation-text').innerHTML = MOTIVATIONS[state.motivationIdx % MOTIVATIONS.length];
+  state.motivationIdx++;
+  state.motivationTimer = setTimeout(rotateMot, 12000);
+}
 
-            const warning = document.getElementById('warning-overlay');
-            warning.classList.remove('hidden');
-            document.body.classList.add('penalty-flash');
-            
-            setTimeout(() => {
-                warning.classList.add('hidden');
-                document.body.classList.remove('penalty-flash');
-            }, 3000);
-        }
+// ==================== HARD LOCK ====================
+function engageHardLock() {
+  // Prevent back navigation / visibility change
+  history.pushState(null, '', location.href);
+  window.onpopstate = function() {
+    if (state.lockActive) {
+      history.pushState(null, '', location.href);
+      flashBlocker();
+    }
+  };
 
-        function enableAntiCheat() {
-            // منع الرجوع عبر التلاعب بمسار المتصفح
-            window.history.pushState(null, null, window.location.href);
-            window.onpopstate = () => { 
-                if (isLocked) {
-                    window.history.pushState(null, null, window.location.href); 
-                    triggerPenalty(); 
-                }
-            };
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  document.addEventListener('keydown', onKeyDown, true);
+  window.addEventListener('blur', onBlur);
+  window.addEventListener('focus', onFocus);
+}
 
-            // كشف محاولة مغادرة التطبيق أو تبديل التبويب
-            document.addEventListener('visibilitychange', () => { 
-                if (document.hidden && isLocked) triggerPenalty(); 
-            });
-            
-            window.onblur = () => { 
-                if (isLocked) triggerPenalty(); 
-            };
-        }
+function onVisibilityChange() {
+  if (!state.lockActive) return;
+  if (document.hidden) {
+    state.freezeAttempts++;
+    logEvent('محاولة مغادرة');
+  } else {
+    // Force full screen re-show
+    showScreen('lock-screen');
+  }
+}
 
-        // حظر مفاتيح النظام الشائعة في الويب
-        document.addEventListener('keydown', (e) => {
-            if (isLocked) {
-                // منع التلاعب إلا بمفاتيح غير ضارة
-                if (e.key !== "Shift" && e.key !== "Control") {
-                    e.preventDefault();
-                    triggerPenalty();
-                }
-            }
-        });
-    </script>
+function onKeyDown(e) {
+  if (!state.lockActive) return;
+  const blocked = ['Escape','F1','F2','F3','F4','F5','F11','F12'];
+  if (blocked.includes(e.key)) {
+    e.preventDefault(); e.stopPropagation();
+    flashBlocker();
+  }
+}
+
+function onBlur() {
+  if (!state.lockActive) return;
+  // Attempt to refocus
+  setTimeout(() => { try { window.focus(); } catch(e){} }, 100);
+}
+
+function onFocus() {
+  if (state.lockActive) showScreen('lock-screen');
+}
+
+function flashBlocker() {
+  const b = document.getElementById('overlay-blocker');
+  b.classList.add('show');
+  setTimeout(() => b.classList.remove('show'), 1500);
+}
+
+function disengageHardLock() {
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+  document.removeEventListener('keydown', onKeyDown, true);
+  window.removeEventListener('blur', onBlur);
+  window.removeEventListener('focus', onFocus);
+  window.onpopstate = null;
+}
+
+// ==================== UNLOCK PANEL ====================
+let unlockCurrent = '';
+
+function showUnlockPanel() {
+  unlockCurrent = '';
+  updatePinDisplay('unlock-dots', 0);
+  document.getElementById('unlock-attempts').textContent = '';
+  document.getElementById('unlock-panel').classList.add('visible');
+}
+
+function hideUnlockPanel() {
+  document.getElementById('unlock-panel').classList.remove('visible');
+}
+
+function unlockInput(n) {
+  if (unlockCurrent.length >= 6) return;
+  unlockCurrent += n;
+  updatePinDisplay('unlock-dots', unlockCurrent.length);
+  if (unlockCurrent.length === 6) {
+    setTimeout(checkUnlock, 300);
+  }
+}
+
+function unlockDelete() {
+  unlockCurrent = unlockCurrent.slice(0,-1);
+  updatePinDisplay('unlock-dots', unlockCurrent.length);
+}
+
+function checkUnlock() {
+  if (unlockCurrent === state.pin) {
+    hideUnlockPanel();
+    logEvent('فتح مبكر بكلمة المرور');
+    completeLock(true);
+  } else {
+    state.unlockAttempts++;
+    const dots = document.getElementById('unlock-dots');
+    dots.classList.add('shake');
+    setTimeout(() => dots.classList.remove('shake'), 600);
+    unlockCurrent = '';
+    updatePinDisplay('unlock-dots', 0);
+
+    let msg = `❌ رمز خاطئ — المحاولة ${state.unlockAttempts}`;
+    if (state.unlockAttempts >= 3) {
+      msg += ` — ⚠️ تحذير: محاولاتك مسجلة`;
+    }
+    if (state.unlockAttempts >= 5) {
+      msg = '🚫 تم تجميد محاولات الفتح لـ 30 ثانية';
+      disablePinPad(true);
+      setTimeout(() => {
+        disablePinPad(false);
+        document.getElementById('unlock-attempts').textContent = 'يمكنك المحاولة مجددًا';
+        state.unlockAttempts = 0;
+      }, 30000);
+    }
+    document.getElementById('unlock-attempts').textContent = msg;
+    logEvent('محاولة فتح فاشلة #' + state.unlockAttempts);
+  }
+}
+
+function disablePinPad(disable) {
+  document.querySelectorAll('.unlock-panel .pin-btn').forEach(b => {
+    b.disabled = disable;
+    b.style.opacity = disable ? '0.3' : '1';
+  });
+}
+
+// ==================== COMPLETE ====================
+function completeLock(early = false) {
+  clearTimeout(state.lockTimer);
+  clearTimeout(state.clockTimer);
+  clearTimeout(state.motivationTimer);
+  state.lockActive = false;
+  disengageHardLock();
+
+  const elapsed = state.totalSeconds - state.remainingSeconds;
+  const session = {
+    date: new Date().toLocaleDateString('ar'),
+    time: new Date().toLocaleTimeString('ar'),
+    mode: state.mode === 'total' ? 'قفل كامل' : 'قفل انتقائي',
+    planned: formatSec(state.totalSeconds),
+    actual: formatSec(elapsed),
+    early: early,
+    attempts: state.unlockAttempts,
+    leaveAttempts: state.freezeAttempts,
+  };
+  state.sessions.unshift(session);
+  if (state.sessions.length > 20) state.sessions = state.sessions.slice(0,20);
+  localStorage.setItem('sl_sessions', JSON.stringify(state.sessions));
+
+  document.getElementById('session-summary').textContent = early
+    ? `⚠️ جلسة مبتورة — ${formatSec(elapsed)} من أصل ${formatSec(state.totalSeconds)}`
+    : `🎉 أتممت جلسة كاملة مدتها ${formatSec(elapsed)} بنجاح!`;
+
+  let logHtml = `
+    <div style="font-size:13px;line-height:2;color:var(--muted)">
+      <div>📅 التاريخ: <b style="color:var(--text)">${session.date} ${session.time}</b></div>
+      <div>⚙️ الوضع: <b style="color:var(--text)">${session.mode}</b></div>
+      <div>⏱️ المدة المخططة: <b style="color:var(--text)">${session.planned}</b></div>
+      <div>✅ الفعلية: <b style="color:${early?'var(--red)':'var(--green)'}">${session.actual}</b></div>
+      <div>🔓 محاولات فتح خاطئة: <b style="color:var(--text)">${session.attempts}</b></div>
+      <div>📲 محاولات المغادرة: <b style="color:var(--text)">${session.leaveAttempts}</b></div>
+    </div>`;
+  document.getElementById('session-log').innerHTML = logHtml;
+
+  showScreen('unlock-screen');
+}
+
+function formatSec(s) {
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  if (h > 0) return `${h}س ${m}د`;
+  if (m > 0) return `${m}د ${sec}ث`;
+  return `${sec}ث`;
+}
+
+function logEvent(msg) {
+  console.log(`[StudyLock] ${new Date().toLocaleTimeString()} — ${msg}`);
+}
+
+// ==================== STATS ====================
+function showStats() {
+  alert(`📊 إجمالي الجلسات: ${state.sessions.length}\n\nآخر 3 جلسات:\n` +
+    state.sessions.slice(0,3).map(s =>
+      `• ${s.date} — ${s.actual} — ${s.early?'مبتورة':'مكتملة'}`
+    ).join('\n')
+  );
+}
+
+// ==================== INIT ====================
+initStars();
+selectMode('total');
+document.getElementById('val-m').textContent = '25';
+
+// Prevent right-click / dev tools shortcuts
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && ['u','s','i','j','c'].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+  }
+});
+
+// Prevent screen from sleeping (where supported)
+if ('wakeLock' in navigator) {
+  const requestWakeLock = async () => {
+    try { await navigator.wakeLock.request('screen'); } catch(e) {}
+  };
+  requestWakeLock();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) requestWakeLock();
+  });
+}
+</script>
 </body>
 </html>
