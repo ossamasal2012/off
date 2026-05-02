@@ -208,7 +208,7 @@ jobs:
         with:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
+          # cache: 'gradle' — محذوف: يتطلب ملفات Gradle مسبقة في الريبو
 
       - name: ⚙️ إعداد Node.js
         uses: actions/setup-node@v4
@@ -332,7 +332,7 @@ jobs:
         with:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
+          # cache: 'gradle' — محذوف: يتطلب ملفات Gradle مسبقة في الريبو
 
       - name: ⚙️ إعداد Node.js
         uses: actions/setup-node@v4
