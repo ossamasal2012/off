@@ -300,45 +300,59 @@ jobs:
       - name: 🏗️ بناء Debug APK
         working-directory: android
         run: |
+          set -o pipefail
           ./gradlew assembleDebug \
             --no-daemon \
             --stacktrace \
             --warning-mode=all \
             2>&1 | tee ../gradle-debug.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          if [ "$BUILD_EXIT" -ne 0 ]; then
+            echo "Gradle فشل بكود: $BUILD_EXIT"
+            echo "آخر 50 سطر من السجل:"
+            tail -50 ../gradle-debug.log
+            exit "$BUILD_EXIT"
+          fi
 
       - name: ✅ التحقق من وجود الـ APK
         run: |
-          APK_PATH=$(find ${{ env.APK_DIR }}/debug -name "*.apk" | head -1)
+          echo "البحث عن APK في كل المخرجات..."
+          find android/ -name "*.apk" 2>/dev/null || echo "لا يوجد أي APK في المشروع"
+          APK_PATH=$(find android/ -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK_PATH" ]; then
-            echo "❌ لم يُنتج أي APK!"
+            echo "فشل البناء - لا يوجد APK"
+            echo "هيكل مجلد build:"
+            find android/app/build -type f 2>/dev/null | head -30 || echo "مجلد build فارغ او غير موجود"
             exit 1
           fi
           echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
-          echo "✅ APK موجود: $APK_PATH"
+          echo "APK موجود: $APK_PATH"
           ls -lh "$APK_PATH"
 
       - name: 🔍 فحص APK بـ apkanalyzer
         run: |
-          APK_PATH=$(find ${{ env.APK_DIR }}/debug -name "*.apk" | head -1)
-          $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer \
-            apk summary "$APK_PATH" || true
+          APK_PATH=$(find android/ -name "*.apk" 2>/dev/null | head -1)
+          if [ -n "$APK_PATH" ]; then
+            $ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer apk summary "$APK_PATH" || true
+          fi
 
       - name: 📊 فحص حجم الـ APK
         run: |
-          APK_PATH=$(find ${{ env.APK_DIR }}/debug -name "*.apk" | head -1)
-          SIZE=$(du -sh "$APK_PATH" | cut -f1)
-          echo "📦 حجم الـ APK: $SIZE"
-          # رفع تحذير إذا تجاوز 50MB
-          SIZE_BYTES=$(wc -c < "$APK_PATH")
-          if [ "$SIZE_BYTES" -gt "52428800" ]; then
-            echo "⚠️ تحذير: الـ APK كبير جداً ($SIZE)"
+          APK_PATH=$(find android/ -name "*.apk" 2>/dev/null | head -1)
+          if [ -n "$APK_PATH" ]; then
+            SIZE=$(du -sh "$APK_PATH" | cut -f1)
+            echo "حجم الـ APK: $SIZE"
+            SIZE_BYTES=$(wc -c < "$APK_PATH")
+            if [ "$SIZE_BYTES" -gt "52428800" ]; then
+              echo "تحذير: الـ APK كبير ($SIZE)"
+            fi
           fi
 
       - name: 📤 رفع Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: studylock-debug-apk-${{ github.sha }}
-          path: ${{ env.APK_DIR }}/debug/*.apk
+          path: ${{ env.APK_PATH }}
           retention-days: 7
           if-no-files-found: error
 
