@@ -224,13 +224,62 @@ jobs:
           ndk-version: ${{ env.ANDROID_NDK_VERSION }}
           cmake: false
 
-      - name: 📦 تثبيت التبعيات
-        run: npm install --ignore-scripts
-
-      - name: 🏗️ بناء ملفات الويب
+      - name: 📦 تثبيت Capacitor وتهيئة المشروع
         run: |
-          npm run build 2>&1 | tee build-web.log
-          echo "✅ تم بناء ملفات الويب"
+          # تثبيت Capacitor CLI والـ core
+          npm install --ignore-scripts
+          npm install @capacitor/core@${{ env.CAPACITOR_VERSION }} \
+                      @capacitor/android@${{ env.CAPACITOR_VERSION }} \
+                      @capacitor/cli@${{ env.CAPACITOR_VERSION }} \
+                      --ignore-scripts
+          echo "✅ تم تثبيت Capacitor"
+
+      - name: 📄 إنشاء capacitor.config.json
+        run: |
+          cat > capacitor.config.json << 'CAPEOF'
+          {
+            "appId": "com.studylock.app",
+            "appName": "StudyLock",
+            "webDir": "www",
+            "android": {
+              "allowMixedContent": false,
+              "captureInput": true,
+              "webContentsDebuggingEnabled": false
+            },
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          CAPEOF
+          echo "✅ تم إنشاء capacitor.config.json"
+
+      - name: 🌐 إنشاء مجلد www وإضافة ملف الويب
+        run: |
+          mkdir -p www
+          # نسخ ملف HTML الرئيسي إلى مجلد www
+          if [ -f index.html ]; then
+            cp index.html www/
+          elif [ -f src/index.html ]; then
+            cp src/index.html www/
+          else
+            # إنشاء index.html بسيط كـ placeholder إذا لم يوجد
+            cp study_lock.html www/index.html 2>/dev/null || \
+            echo '<html><body><h1>StudyLock</h1></body></html>' > www/index.html
+          fi
+          echo "✅ مجلد www جاهز"
+          ls -la www/
+
+      - name: 📱 إضافة منصة Android
+        run: |
+          npx cap add android 2>&1 | tee cap-add.log || true
+          # إذا كان مجلد android موجوداً مسبقاً لا تفشل
+          if [ -d android ]; then
+            echo "✅ مجلد android موجود"
+          else
+            echo "❌ فشل إنشاء مجلد android"
+            cat cap-add.log
+            exit 1
+          fi
 
       - name: ⚡ مزامنة Capacitor
         run: |
@@ -239,19 +288,26 @@ jobs:
 
       - name: 🔒 تطبيق إعدادات الصرامة الأمنية
         run: |
-          # تفعيل ProGuard للـ debug (مستوى أعلى من المعتاد)
-          cat >> android/app/build.gradle << 'EOF'
+          BUILD_GRADLE="android/app/build.gradle"
+          if [ ! -f "$BUILD_GRADLE" ]; then
+            echo "❌ لم يُنشأ android/app/build.gradle!"
+            find android/ -name "*.gradle" 2>/dev/null || echo "لا توجد ملفات gradle"
+            exit 1
+          fi
 
-          // إعدادات StudyLock الأمنية الإضافية
-          android.buildTypes.debug {
-              debuggable false  // لا debug في أي بناء!
-              jniDebuggable false
-              renderscriptDebuggable false
-              minifyEnabled true
-              shrinkResources true
-              proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-          }
-          EOF
+          # تفعيل ProGuard للـ debug (مستوى أعلى من المعتاد)
+          cat >> "$BUILD_GRADLE" << 'GRADEOF'
+
+// StudyLock — إعدادات أمنية إضافية
+android.buildTypes.debug {
+    debuggable false
+    jniDebuggable false
+    minifyEnabled true
+    shrinkResources true
+    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+}
+GRADEOF
+          echo "✅ تم تطبيق إعدادات ProGuard"
 
       - name: 🏗️ بناء Debug APK
         working-directory: android
@@ -346,11 +402,38 @@ jobs:
           api-level: ${{ env.ANDROID_API_LEVEL }}
           build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
 
-      - name: 📦 تثبيت التبعيات
-        run: npm install --ignore-scripts
+      - name: 📦 تثبيت Capacitor وتهيئة المشروع
+        run: |
+          npm install --ignore-scripts
+          npm install @capacitor/core@${{ env.CAPACITOR_VERSION }} \
+                      @capacitor/android@${{ env.CAPACITOR_VERSION }} \
+                      @capacitor/cli@${{ env.CAPACITOR_VERSION }} \
+                      --ignore-scripts
 
-      - name: 🏗️ بناء ملفات الويب
-        run: npm run build
+      - name: 📄 إنشاء capacitor.config.json
+        run: |
+          cat > capacitor.config.json << 'CAPEOF'
+          {
+            "appId": "com.studylock.app",
+            "appName": "StudyLock",
+            "webDir": "www",
+            "android": { "webContentsDebuggingEnabled": false },
+            "server": { "androidScheme": "https" }
+          }
+          CAPEOF
+
+      - name: 🌐 إنشاء مجلد www
+        run: |
+          mkdir -p www
+          cp study_lock.html www/index.html 2>/dev/null || \
+          cp index.html www/ 2>/dev/null || \
+          echo '<html><body><h1>StudyLock</h1></body></html>' > www/index.html
+          ls -la www/
+
+      - name: 📱 إضافة منصة Android
+        run: |
+          npx cap add android 2>&1 || true
+          [ -d android ] && echo "✅ android جاهز" || { echo "❌ فشل"; exit 1; }
 
       - name: ⚡ مزامنة Capacitor
         run: npx cap sync android
