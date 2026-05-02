@@ -294,7 +294,7 @@ jobs:
             find android/ -name "*.gradle" 2>/dev/null || echo "لا توجد ملفات gradle"
             exit 1
           fi
-          printf '\nandroid.buildTypes.debug {\n    debuggable false\n    jniDebuggable false\n    minifyEnabled true\n    shrinkResources true\n    proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"\n}\n' >> "$BUILD_GRADLE"
+          printf '\nandroid {\n    buildTypes {\n        debug {\n            debuggable false\n            jniDebuggable false\n            minifyEnabled true\n            shrinkResources true\n            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"\n        }\n    }\n}\n' >> "$BUILD_GRADLE" 
           echo "تم تطبيق اعدادات ProGuard"
 
       - name: 🏗️ بناء Debug APK
