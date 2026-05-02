@@ -290,24 +290,12 @@ jobs:
         run: |
           BUILD_GRADLE="android/app/build.gradle"
           if [ ! -f "$BUILD_GRADLE" ]; then
-            echo "❌ لم يُنشأ android/app/build.gradle!"
+            echo "لم ينشأ android/app/build.gradle"
             find android/ -name "*.gradle" 2>/dev/null || echo "لا توجد ملفات gradle"
             exit 1
           fi
-
-          # تفعيل ProGuard للـ debug (مستوى أعلى من المعتاد)
-          cat >> "$BUILD_GRADLE" << 'GRADEOF'
-
-// StudyLock — إعدادات أمنية إضافية
-android.buildTypes.debug {
-    debuggable false
-    jniDebuggable false
-    minifyEnabled true
-    shrinkResources true
-    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-}
-GRADEOF
-          echo "✅ تم تطبيق إعدادات ProGuard"
+          printf '\nandroid.buildTypes.debug {\n    debuggable false\n    jniDebuggable false\n    minifyEnabled true\n    shrinkResources true\n    proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"\n}\n' >> "$BUILD_GRADLE"
+          echo "تم تطبيق اعدادات ProGuard"
 
       - name: 🏗️ بناء Debug APK
         working-directory: android
